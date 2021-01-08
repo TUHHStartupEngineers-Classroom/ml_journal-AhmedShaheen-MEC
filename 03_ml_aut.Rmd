@@ -1,5 +1,5 @@
 ---
-title: "03 Automated Machine Learning with H20"
+title: "03 Automated Machine Learning with H20 ONE and TWO"
 date: "2020-11-05"
 output:
   html_document:
@@ -16,39 +16,246 @@ output:
 knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 ```
 
-**IMPORTANT:** You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.
 
-This is an `.Rmd` file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a \# in front of your text, it will create a top level-header.
+# Libraries
 
-# My first post
-
-Last compiled: `r Sys.Date()`
-
-Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left. 
-
-## Second level header
-
-You can add more headers by adding more hashtags. These won't be put into the table of contents
-
-### third level header
-
-Here's an even lower level header
-
-# My second post (note the order)
-
-Last compiled: `r Sys.Date()`
-
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
-
-# Adding R stuff
-
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
-
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
+Load the following libraries. 
 
 ```{r}
-samples <- rnorm(100, mean=0, sd=1)
-hist(samples)
+library(h2o)
+library(tidyverse)
+library(readxl)
+library(skimr)
+library(GGally)
+library(rsample)
+library(recipes)
+library(PerformanceAnalytics)  # for skewers
+library(rpart.plot)
 ```
 
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.
+
+# Challenge
+
+```{r}
+ employee_attrition_tbl <- read_csv("datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv")
+```
+
+## Helper function
+
+```{r}
+plot_ggpairs <- function(data, color = NULL, density_alpha = 0.5) {
+#   
+  color_expr <- enquo(color)
+   
+   if (rlang::quo_is_null(color_expr)) {
+     
+     g <- data %>%
+       ggpairs(lower = "blank") 
+     
+   } else {
+     
+     color_name <- quo_name(color_expr)
+     
+     g <- data %>%
+       ggpairs(mapping = aes_string(color = color_name), 
+               lower = "blank", legend = 1,
+               diag = list(continuous = wrap("densityDiag", 
+                                             alpha = density_alpha))) +
+       theme(legend.position = "bottom")
+   }
+   
+   return(g)
+   
+}
+  
+```
+
+## Number One
+```{r}
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("income")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is C 
+```
+
+##Number Two
+
+```{r}
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("PercentSalaryHike")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is D
+```
+
+## Number Three
+
+```{r}
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("StockOptionLevel")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is B
+```
+
+## Number Four
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("EnvironmentSatisfaction")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is A
+```
+
+## Number Five
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("WorkLifeBalance")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is B
+```
+
+## Number Six
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("JobInvolvement")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is A
+```
+
+## Number Seven
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("OverTime")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is B
+```
+
+## Number Eight
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("TrainingTimesLastYear")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is B
+```
+
+## Number Nine
+
+```{r}
+
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("YearsAtCompany")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is B
+```
+
+## Number Ten
+
+```{r}
+
+employee_attrition_tbl %>%
+  select(Attrition, contains("YearsSinceLastPromotion")) %>%
+  plot_ggpairs(Attrition)
+
+#The answer is C
+```
+
+# Second challenge 
+
+```{r}
+product_backorders_tbl <- read_csv("product_backorders.csv")
+```
+
+## Split into test and train
+
+```{r}
+set.seed(seed = 1113)
+split_obj <- rsample::initial_split(product_backorders_tbl, prop = 0.85)
+```
+
+## Assign training and test data
+
+```{r}
+train_readable_tbl<- training(split_obj)
+test_readable_tbl <- testing(split_obj)
+```
+
+```{r}
+  recipe_obj <- recipe( went_on_backorder~., data = train_readable_tbl) %>% 
+  step_zv(all_predictors()) %>%
+  prep()
+  
+train_tbl <- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  <- bake(recipe_obj, new_data = test_readable_tbl)
+```
+
+## set the predictor names
+```{r} 
+ predictors <- c("national_inv", "lead_time", "forecast_3_month", "sales_3_month")
+  
+##specify the response
+
+ response <- "went_on_backorder"
+ h2o.init()
+``` 
+
+## Split data into a training and a validation data frame
+
+```{r}
+ # Setting the seed is just for reproducability
+ split_h2o <- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)
+ train_h2o <- split_h2o[[1]]
+ valid_h2o <- split_h2o[[2]]
+ test_h2o  <- as.h2o(test_tbl)
+```
+ 
+## Set the target and predictors
+
+```{r}
+ y <- response
+ x <- setdiff(names(train_h2o), y)
+ 
+ 
+ automl_models_h2o <- h2o.automl(
+   x = x,
+   y = y,
+   training_frame    = train_h2o,
+   validation_frame  = valid_h2o,
+   leaderboard_frame = test_h2o,
+   max_runtime_secs  = 15,
+   nfolds            = 5 
+ )
+```
+
+## Prepare model
+
+```{r}
+ automl_models_h2o@leaderboard
+ Model<-automl_models_h2o@leader
+ h2o.saveModel(Model,path = "ml_journal-Automated_Machine_learning_2_model")
+```

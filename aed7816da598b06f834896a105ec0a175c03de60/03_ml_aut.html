@@ -12,7 +12,7 @@
 
 <meta name="date" content="2020-11-05" />
 
-<title>03 Automated Machine Learning with H20</title>
+<title>03 Automated Machine Learning with H20 ONE and TWO</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -409,40 +409,256 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">03 Automated Machine Learning with H20</h1>
+<h1 class="title toc-ignore">03 Automated Machine Learning with H20 ONE and TWO</h1>
 <h4 class="date">2020-11-05</h4>
 
 </div>
 
 
-<p><strong>IMPORTANT:</strong> You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.</p>
-<p>This is an <code>.Rmd</code> file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a # in front of your text, it will create a top level-header.</p>
-<div id="my-first-post" class="section level1">
-<h1><span class="header-section-number">1</span> My first post</h1>
-<p>Last compiled: 2020-12-23</p>
-<p>Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left.</p>
-<div id="second-level-header" class="section level2">
-<h2><span class="header-section-number">1.1</span> Second level header</h2>
-<p>You can add more headers by adding more hashtags. These won’t be put into the table of contents</p>
-<div id="third-level-header" class="section level3">
-<h3><span class="header-section-number">1.1.1</span> third level header</h3>
-<p>Here’s an even lower level header</p>
+<div id="libraries" class="section level1">
+<h1><span class="header-section-number">1</span> Libraries</h1>
+<p>Load the following libraries.</p>
+<pre class="r"><code>library(h2o)
+library(tidyverse)
+library(readxl)
+library(skimr)
+library(GGally)
+library(rsample)
+library(recipes)
+library(PerformanceAnalytics)  # for skewers
+library(rpart.plot)</code></pre>
+</div>
+<div id="challenge" class="section level1">
+<h1><span class="header-section-number">2</span> Challenge</h1>
+<pre class="r"><code> employee_attrition_tbl &lt;- read_csv(&quot;datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv&quot;)</code></pre>
+<div id="helper-function" class="section level2">
+<h2><span class="header-section-number">2.1</span> Helper function</h2>
+<pre class="r"><code>plot_ggpairs &lt;- function(data, color = NULL, density_alpha = 0.5) {
+#   
+  color_expr &lt;- enquo(color)
+   
+   if (rlang::quo_is_null(color_expr)) {
+     
+     g &lt;- data %&gt;%
+       ggpairs(lower = &quot;blank&quot;) 
+     
+   } else {
+     
+     color_name &lt;- quo_name(color_expr)
+     
+     g &lt;- data %&gt;%
+       ggpairs(mapping = aes_string(color = color_name), 
+               lower = &quot;blank&quot;, legend = 1,
+               diag = list(continuous = wrap(&quot;densityDiag&quot;, 
+                                             alpha = density_alpha))) +
+       theme(legend.position = &quot;bottom&quot;)
+   }
+   
+   return(g)
+   
+}</code></pre>
+</div>
+<div id="number-one" class="section level2">
+<h2><span class="header-section-number">2.2</span> Number One</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;income&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is C </code></pre>
+<p>##Number Two</p>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;PercentSalaryHike&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is D</code></pre>
+</div>
+<div id="number-three" class="section level2">
+<h2><span class="header-section-number">2.3</span> Number Three</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;StockOptionLevel&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-four" class="section level2">
+<h2><span class="header-section-number">2.4</span> Number Four</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;EnvironmentSatisfaction&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is A</code></pre>
+</div>
+<div id="number-five" class="section level2">
+<h2><span class="header-section-number">2.5</span> Number Five</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;WorkLifeBalance&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-six" class="section level2">
+<h2><span class="header-section-number">2.6</span> Number Six</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;JobInvolvement&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is A</code></pre>
+</div>
+<div id="number-seven" class="section level2">
+<h2><span class="header-section-number">2.7</span> Number Seven</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;OverTime&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-eight" class="section level2">
+<h2><span class="header-section-number">2.8</span> Number Eight</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;TrainingTimesLastYear&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-nine" class="section level2">
+<h2><span class="header-section-number">2.9</span> Number Nine</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;YearsAtCompany&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-ten" class="section level2">
+<h2><span class="header-section-number">2.10</span> Number Ten</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;YearsSinceLastPromotion&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is C</code></pre>
 </div>
 </div>
+<div id="second-challenge" class="section level1">
+<h1><span class="header-section-number">3</span> Second challenge</h1>
+<pre class="r"><code>product_backorders_tbl &lt;- read_csv(&quot;product_backorders.csv&quot;)</code></pre>
+<div id="split-into-test-and-train" class="section level2">
+<h2><span class="header-section-number">3.1</span> Split into test and train</h2>
+<pre class="r"><code>set.seed(seed = 1113)
+split_obj &lt;- rsample::initial_split(product_backorders_tbl, prop = 0.85)</code></pre>
 </div>
-<div id="my-second-post-note-the-order" class="section level1">
-<h1><span class="header-section-number">2</span> My second post (note the order)</h1>
-<p>Last compiled: 2020-12-23</p>
-<p>I’m writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom</p>
+<div id="assign-training-and-test-data" class="section level2">
+<h2><span class="header-section-number">3.2</span> Assign training and test data</h2>
+<pre class="r"><code>train_readable_tbl&lt;- training(split_obj)
+test_readable_tbl &lt;- testing(split_obj)</code></pre>
+<pre class="r"><code>  recipe_obj &lt;- recipe( went_on_backorder~., data = train_readable_tbl) %&gt;% 
+  step_zv(all_predictors()) %&gt;%
+  prep()
+  
+train_tbl &lt;- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  &lt;- bake(recipe_obj, new_data = test_readable_tbl)</code></pre>
 </div>
-<div id="adding-r-stuff" class="section level1">
-<h1><span class="header-section-number">3</span> Adding R stuff</h1>
-<p>So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place.</p>
-<p>So, let’s say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:</p>
-<pre class="r"><code>samples &lt;- rnorm(100, mean=0, sd=1)
-hist(samples)</code></pre>
-<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
-<p>When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You’ll learn that all of these things and more can be customized in each R code block.</p>
+<div id="set-the-predictor-names" class="section level2">
+<h2><span class="header-section-number">3.3</span> set the predictor names</h2>
+<pre class="r"><code> predictors &lt;- c(&quot;national_inv&quot;, &quot;lead_time&quot;, &quot;forecast_3_month&quot;, &quot;sales_3_month&quot;)
+  
+##specify the response
+
+ response &lt;- &quot;went_on_backorder&quot;
+ h2o.init()</code></pre>
+<pre><code>##  Connection successful!
+## 
+## R is connected to the H2O cluster: 
+##     H2O cluster uptime:         13 minutes 39 seconds 
+##     H2O cluster timezone:       Europe/Berlin 
+##     H2O data parsing timezone:  UTC 
+##     H2O cluster version:        3.32.0.1 
+##     H2O cluster version age:    2 months and 30 days  
+##     H2O cluster name:           H2O_started_from_R_ahmed_cgv301 
+##     H2O cluster total nodes:    1 
+##     H2O cluster total memory:   1.91 GB 
+##     H2O cluster total cores:    4 
+##     H2O cluster allowed cores:  4 
+##     H2O cluster healthy:        TRUE 
+##     H2O Connection ip:          localhost 
+##     H2O Connection port:        54321 
+##     H2O Connection proxy:       NA 
+##     H2O Internal Security:      FALSE 
+##     H2O API Extensions:         Amazon S3, Algos, AutoML, Core V3, TargetEncoder, Core V4 
+##     R Version:                  R version 4.0.3 (2020-10-10)</code></pre>
+</div>
+<div id="split-data-into-a-training-and-a-validation-data-frame" class="section level2">
+<h2><span class="header-section-number">3.4</span> Split data into a training and a validation data frame</h2>
+<pre class="r"><code> # Setting the seed is just for reproducability
+ split_h2o &lt;- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code> train_h2o &lt;- split_h2o[[1]]
+ valid_h2o &lt;- split_h2o[[2]]
+ test_h2o  &lt;- as.h2o(test_tbl)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="set-the-target-and-predictors" class="section level2">
+<h2><span class="header-section-number">3.5</span> Set the target and predictors</h2>
+<pre class="r"><code> y &lt;- response
+ x &lt;- setdiff(names(train_h2o), y)
+ 
+ 
+ automl_models_h2o &lt;- h2o.automl(
+   x = x,
+   y = y,
+   training_frame    = train_h2o,
+   validation_frame  = valid_h2o,
+   leaderboard_frame = test_h2o,
+   max_runtime_secs  = 15,
+   nfolds            = 5 
+ )</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |==                                                                    |   3%
+## 22:48:19.861: User specified a validation frame with cross-validation still enabled. Please note that the models will still be validated using cross-validation only, the validation frame will be used to provide purely informative validation metrics on the trained models.
+## 22:48:19.863: AutoML: XGBoost is not available; skipping it.
+  |                                                                            
+  |====================                                                  |  28%
+  |                                                                            
+  |==================================                                    |  48%
+  |                                                                            
+  |================================================                      |  69%
+  |                                                                            
+  |========================================================              |  80%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="prepare-model" class="section level2">
+<h2><span class="header-section-number">3.6</span> Prepare model</h2>
+<pre class="r"><code> automl_models_h2o@leaderboard</code></pre>
+<pre><code>##                                              model_id       auc   logloss
+## 1    StackedEnsemble_AllModels_AutoML_20210107_224819 0.9394558 0.2131051
+## 2 StackedEnsemble_BestOfFamily_AutoML_20210107_224819 0.9311959 0.2218356
+## 3                        GBM_4_AutoML_20210107_224819 0.9190436 0.3116600
+## 4                        GBM_5_AutoML_20210107_224819 0.8828485 0.3373774
+## 5          GBM_grid__1_AutoML_20210107_224819_model_1 0.8777214 0.2930852
+## 6                        XRT_1_AutoML_20210107_224819 0.7794637 1.9771909
+##       aucpr mean_per_class_error      rmse        mse
+## 1 0.6552421            0.1641491 0.2514850 0.06324468
+## 2 0.6463268            0.1581397 0.2542267 0.06463123
+## 3 0.6236841            0.1768081 0.3010432 0.09062698
+## 4 0.4439764            0.2162209 0.3129217 0.09791999
+## 5 0.5136269            0.2503596 0.2915083 0.08497709
+## 6 0.3757676            0.3096239 0.3155025 0.09954183
+## 
+## [12 rows x 7 columns]</code></pre>
+<pre class="r"><code> Model&lt;-automl_models_h2o@leader
+ h2o.saveModel(Model,path = &quot;ml_journal-Automated_Machine_learning_2_model&quot;)</code></pre>
+<pre><code>## [1] &quot;D:\\Mechatronics_master\\Third semester\\Data science\\Machine learning\\ml_journal-AhmedShaheen-MEC\\ml_journal-Automated_Machine_learning_2_model\\StackedEnsemble_AllModels_AutoML_20210107_224819&quot;</code></pre>
+</div>
 </div>
 
 

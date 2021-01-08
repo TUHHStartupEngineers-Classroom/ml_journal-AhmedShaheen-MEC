@@ -1,54 +1,299 @@
 ---
-title: "02 Supervised ML"
-date: "2020-11-05"
+title: "Bikes categoty price prediction"
+date: "7/24/2020"
 output:
   html_document:
-    toc: true
-    toc_float: true
+    toc: yes
+    theme: flatly
+    highlight: tango
+    code_folding: hide
     df_print: paged
-    collapsed: false
-    number_sections: true
-    toc_depth: 3
-    #code_folding: hide
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
+knitr::opts_chunk$set(
+    echo = TRUE,
+    message = FALSE,
+    warning = FALSE
+    )
 ```
 
-**IMPORTANT:** You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.
+# Challenge Summary
 
-This is an `.Rmd` file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a \# in front of your text, it will create a top level-header.
 
-# My first post
+\#Which Bike Categories are in high demand?
+\#Which Bike Categories are under represented?
+  
+__Goal__
 
-Last compiled: `r Sys.Date()`
+\#Use a pricing algorithm to determine a new product price in a category gap
 
-Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left. 
 
-## Second level header
+# Procedure
 
-You can add more headers by adding more hashtags. These won't be put into the table of contents
+  - 1.Get the ingredients __(recipe())__: specify the response variable and predictor variables
+  - 2.Write the recipe __(step_xxx())__: define the pre-processing steps, such as imputation
+  - 3.creating __dummy variables__, scaling, and more
+  - 4.Prepare the recipe __(prep())__: provide a dataset to base each step on
+  - 5.Bake the recipe __(bake())__: apply the pre-processing steps to your datasets
+  - 6.Create a workflow __(workflow())__: Add models add_model() and the recipe add_recipe()
+  - 7.Predict the price of a new model __fit()__ and __predict()__
 
-### third level header
 
-Here's an even lower level header
+# Libraries
 
-# My second post (note the order)
+Load the following libraries. 
 
-Last compiled: `r Sys.Date()`
-
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
-
-# Adding R stuff
-
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
-
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
 
 ```{r}
-samples <- rnorm(100, mean=0, sd=1)
-hist(samples)
+# install.packages("plotly")
+# Standard
+library(tidyverse)
+# Modeling
+library(parsnip)
+# Preprocessing & Sampling
+library(recipes)
+library(rsample)
+# Modeling Error Metrics
+library(yardstick)
+# Plotting Decision Trees
+library(rpart.plot)
+library(tidymodels)  # for the parsnip package, along with the rest of tidymodels
+# Helper packages
+library(broom.mixed) # for converting bayesian models to tidy tibbles
+library(rstanarm)
+library(dials)
+library(workflows)
+library(vip)
+library(janitor)
 ```
 
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.
+
+# Data
+
+We will be using bike features data table
+
+- `price`: The target element, we want to predict bike price correctly
+- `category`: Bikes family which will be studied
+- `bike components manufacturere`: Components which will help predicting the price depending on the manufacturer
+- `Weight`: Component which is also involved during price prediction.
+- `Model`: Bike model, will be considered as an ID for a certain bike.
+- `Frame material`: will be used as Carbon by default
+
+```{r}
+# Bike features
+bike_features_tbl <- readRDS("D:/Mechatronics_master/Third semester/Data science/Machine learning/ml_journal-AhmedShaheen-MEC/challenges/bike_features_tbl.rds")
+glimpse(bike_features_tbl)
+```
+
+## Step 1 - re-organize the data set.
+
+```{r}
+#Define the category which shall be analyzed
+category <- "category_2"
+predictors_filter = 7
+```
+
+```{r}
+# Apply your data transformation skills!
+bike_features_tbl_r <- bike_features_tbl %>% 
+                       select(price, model:weight , category,`Rear Derailleur`, `Saddle`, `Shift Lever`) %>%
+                       mutate_all(funs(replace(., .=="", "N/A"))) %>%
+                       mutate(id = row_number())%>%
+                       mutate(id_1 = row_number())%>%
+                       mutate(id_2 = row_number())%>%
+                       mutate(id_3 = row_number())%>%
+                       pivot_wider(names_from = `Saddle`, values_from =id_3, names_repair = "unique") %>%
+                       pivot_wider(names_from = `Shift Lever`, values_from =id_2, names_repair = "unique") %>%
+                       pivot_wider(names_from = `Rear Derailleur`, values_from =id_1, names_repair = "unique") %>%
+                       select(-`N/A...59`, -`N/A...60`, -`N/A...133` ) %>%
+                       mutate_all(funs(replace_na(.,0)))
+
+bike_features_tbl_r$price <- as.integer(bike_features_tbl_r$price)
+bike_features_tbl_r$weight <- as.double(bike_features_tbl_r$weight)
+
+bike_features_tbl_r_t <-bike_features_tbl_r %>%
+                       select(-(price:id)) %>% 
+                       mutate_all(funs(replace(.,.>1,1))) %>%
+                       mutate_if(is.character,as.numeric) %>%
+                       add_column(test_col = "Don't care", .before = TRUE) %>%
+                       adorn_totals(where ="row",name = "Total") %>%
+                       select(-test_col)  
+
+
+ff = data.frame(dummy =1:231)
+for(i in 1:ncol(bike_features_tbl_r_t)) {       # for-loop over columns
+
+  if (bike_features_tbl_r_t[232,i] >= predictors_filter)
+  {
+    ff <- ff%>% add_column(bike_features_tbl_r_t[1:231,i],.after = TRUE)  
+  }
+}
+
+bike_features_tbl_r_t <- ff %>% select(-dummy)
+
+bike_features_tbl_r_tt <- bike_features_tbl_r_t  %>% add_column(.data = bike_features_tbl_r %>% 
+                                                                  select(price:id))
+bike_features_tbl_r_tt
+# Output: bike_features_tbl_r_tt
+```
+
+
+## Step 2 - TRAINING & TEST SETS
+  - `prop`: split the data according to a given percentage to train-test sets
+  - `strata`: consider different categories when dividing the data set
+  
+
+```{r}
+# Fix the random numbers by setting the seed 
+# This enables the analysis to be reproducible when random numbers are used 
+set.seed(seed = 1113)
+# Put 3/4 of the data into the training set 
+split_obj <- rsample::initial_split(bike_features_tbl_r_tt, prop   = 0.75, 
+                                    strata = "category_2")
+# Create data frames for the two sets:
+train_data <- training(split_obj) 
+test_data  <- testing(split_obj)
+```
+
+## Step 3 - Prepare model recipe 
+
+```{r}
+
+bikes_data_set <- 
+                  recipe(price ~ ., data = train_data) %>% 
+                  step_rm(model_year, weight) %>%
+                  update_role(model, category_2, id, new_role = "ID")%>%
+                  step_dummy(all_nominal(), -all_outcomes()) %>%
+                  prep()
+
+bikes_data_set
+# Output: bikes_data_set
+```
+
+## Step 4 - Bake data sets according to the recipe 
+
+
+```{r}
+train_transformed_tbl <- bake(bikes_data_set, train_data)
+test_transformed_tbl  <- bake(bikes_data_set, test_data)
+
+train_transformed_tbl
+```
+
+
+
+```{r}
+test_transformed_tbl
+```
+
+## Step 5 - Select model and engine to analyze the data
+
+```{r}
+lr_mod_b <- linear_reg(mode = "regression") %>%  set_engine("lm") 
+
+lr_mod_b
+```
+
+## Step 6 - Select work flow
+
+
+```{r}
+bikes_workflow <- 
+  workflow() %>% 
+  add_model(lr_mod_b) %>% 
+  add_recipe(bikes_data_set)
+
+bikes_workflow
+```
+
+
+## Step 7 - Fit the model, to determine model's governing equation
+
+```{r}
+# Use purrr to map
+bikes_fit <- 
+  bikes_workflow %>% 
+  fit(data = train_data)
+
+bikes_fit
+# Output: bikes_fit 
+```
+
+
+```{r}
+# Plot the given model
+
+  bikes_fit %>% pull_workflow_fit() %>% 
+  tidy() %>%
+  arrange(p.value) %>% 
+
+ mutate(term = as_factor(term) %>% fct_rev()) %>%
+  
+  ggplot(aes(x = estimate, y = term)) +
+  geom_point(color = "#2dc6d6", size = 3) +
+  ggrepel::geom_label_repel(aes(label = scales::dollar(estimate, accuracy = 1, suffix = " €", prefix = "")),
+                            size = 4, fill = "#272A36", color = "white") +
+  scale_x_continuous(labels = scales::dollar_format(suffix = " €", prefix = "")) +
+  labs(title = "Linear Regression: Feature Importance",
+       subtitle = "Model 01: Simple lm Model") 
+  
+```
+
+
+## Step 8 - Prepare for model prediction
+
+```{r}
+# Generalized into a function
+calc_metrics <- function(model, new_data = test_tbl) {
+  
+  model %>%
+    predict(new_data = new_data) %>%
+    
+    bind_cols(new_data %>% select(price)) %>%
+    yardstick::metrics(truth = price, estimate = .pred)
+  
+}
+```
+
+## Step 9 - Evaluate the predicted resutls
+
+```{r}
+bikes_fit %>% calc_metrics(train_data)
+```
+
+
+## Test with model: __glmnet__ , with the same steps!
+
+```{r}
+#init model:
+set.seed(1234)
+
+lm_model_glment <-linear_reg(mode    = "regression", 
+                                     penalty = 10, 
+                                     mixture = 0.1) %>%
+    set_engine("glmnet")
+lm_model_glment
+```
+```{r}
+bikes_workflow_glment <- 
+  workflow() %>% 
+  add_model(lm_model_glment) %>% 
+  add_recipe(bikes_data_set)
+
+bikes_workflow_glment
+```
+
+```{r}
+bikes_fit_glment <- 
+  bikes_workflow_glment %>% 
+  fit(data = train_data)
+
+bikes_fit_glment
+```
+
+
+```{r}
+bikes_fit_glment %>% calc_metrics(train_data)

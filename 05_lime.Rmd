@@ -9,46 +9,255 @@ output:
     collapsed: false
     number_sections: true
     toc_depth: 3
-    #code_folding: hide
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(message=FALSE,warning=FALSE, cache=TRUE)
 ```
 
-**IMPORTANT:** You can delete everything in here and start fresh. You might want to start by not deleting anything above this line until you know what that stuff is doing.
+# LIME FEATURE EXPLANATION 
 
-This is an `.Rmd` file. It is plain text with special features. Any time you write just like this, it will be compiled to normal text in the website. If you put a \# in front of your text, it will create a top level-header.
+# 1. Setup
 
-# My first post
-
-Last compiled: `r Sys.Date()`
-
-Notice that whatever you define as a top level header, automatically gets put into the table of contents bar on the left. 
-
-## Second level header
-
-You can add more headers by adding more hashtags. These won't be put into the table of contents
-
-### third level header
-
-Here's an even lower level header
-
-# My second post (note the order)
-
-Last compiled: `r Sys.Date()`
-
-I'm writing this tutorial going from the top down. And, this is how it will be printed. So, notice the second post is second in the list. If you want your most recent post to be at the top, then make a new post starting at the top. If you want the oldest first, do, then keep adding to the bottom
-
-# Adding R stuff
-
-So far this is just a blog where you can write in plain text and serve your writing to a webpage. One of the main purposes of this lab journal is to record your progress learning R. The reason I am asking you to use this process is because you can both make a website, and a lab journal, and learn R all in R-studio. This makes everything really convenient and in the same place. 
-
-So, let's say you are learning how to make a histogram in R. For example, maybe you want to sample 100 numbers from a normal distribution with mean = 0, and standard deviation = 1, and then you want to plot a histogram. You can do this right here by using an r code block, like this:
-
+## Load Libraries 
 ```{r}
-samples <- rnorm(100, mean=0, sd=1)
-hist(samples)
+library(h2o)
+library(recipes)
+library(readxl)
+library(tidyverse)
+library(tidyquant)
+library(lime)
+library(rsample)
 ```
 
-When you knit this R Markdown document, you will see that the histogram is printed to the page, along with the R code. This document can be set up to hide the R code in the webpage, just delete the comment (hashtag) from the cold folding option in the yaml header up top. For purposes of letting yourself see the code, and me see the code, best to keep it the way that it is. You'll learn that all of these things and more can be customized in each R code block.
+## Load Data
+
+```{r}
+employee_attrition_tbl <- read_csv("datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv")
+definitions_raw_tbl    <- read_excel("data_definitions.xlsx", sheet = 1, col_names = FALSE)
+```
+
+## Processing Pipeline
+
+```{r}
+process_hr_data_readable <- function(data, definitions_tbl) {
+  
+  definitions_list <- definitions_tbl %>%
+    fill(...1, .direction = "down") %>%
+    filter(!is.na(...2)) %>%
+    separate(...2, into = c("key", "value"), sep = " '", remove = TRUE) %>%
+    rename(column_name = ...1) %>%
+    mutate(key = as.numeric(key)) %>%
+    mutate(value = value %>% str_replace(pattern = "'", replacement = "")) %>%
+    split(.$column_name) %>%
+    map(~ select(., -column_name)) %>%
+    map(~ mutate(., value = as_factor(value))) 
+  
+  for (i in seq_along(definitions_list)) {
+    list_name <- names(definitions_list)[i]
+    colnames(definitions_list[[i]]) <- c(list_name, paste0(list_name, "_value"))
+  }
+  
+  data_merged_tbl <- list(HR_Data = data) %>%
+    append(definitions_list, after = 1) %>%
+    reduce(left_join) %>%
+    select(-one_of(names(definitions_list))) %>%
+    set_names(str_replace_all(names(.), pattern = "_value", 
+                              replacement = "")) %>%
+    select(sort(names(.))) %>%
+    mutate_if(is.character, as.factor) %>%
+    mutate(
+      BusinessTravel = BusinessTravel %>% fct_relevel("Non-Travel", 
+                                                      "Travel_Rarely", 
+                                                      "Travel_Frequently"),
+      MaritalStatus  = MaritalStatus %>% fct_relevel("Single", 
+                                                     "Married", 
+                                                     "Divorced")
+    )
+  
+  return(data_merged_tbl)
+  
+}
+```
+
+```{r}
+employee_attrition_readable_tbl <- process_hr_data_readable(employee_attrition_tbl, definitions_raw_tbl)
+```
+
+## Split into test and train
+
+```{r}
+set.seed(seed = 1113)
+split_obj <- rsample::initial_split(employee_attrition_readable_tbl, prop = 0.85)
+```
+
+## Assign training and test data
+
+```{r}
+train_readable_tbl <- training(split_obj)
+test_readable_tbl  <- testing(split_obj)
+```
+
+## ML Preprocessing Recipe 
+
+```{r}
+recipe_obj <- recipe(Attrition ~ ., data = train_readable_tbl) %>%
+  step_zv(all_predictors()) %>%
+  step_mutate_at(c("JobLevel", "StockOptionLevel"), fn = as.factor) %>% 
+  prep()
+
+recipe_obj
+```
+
+```{r}
+train_tbl <- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  <- bake(recipe_obj, new_data = test_readable_tbl)
+```
+
+# 2. Models 
+
+```{r}
+h2o.init()
+
+automl_leader <- h2o.loadModel("ml_journal-Automated_Machine_learning_2_model/StackedEnsemble_BestOfFamily_AutoML_20210106_160244")
+automl_leader
+```
+
+# 3. LIME 
+
+## 3.1 Making Predictions 
+
+```{r}
+predictions_tbl <- automl_leader %>% 
+  h2o.predict(newdata = as.h2o(test_tbl)) %>%
+  as.tibble() %>%
+  bind_cols(test_tbl %>%select(Attrition, EmployeeNumber))
+```
+
+```{r}
+predictions_tbl
+
+test_tbl %>%
+  slice(1) %>%
+  glimpse()
+```
+
+## 3.2 Single Explanation
+
+```{r}
+explainer <- train_tbl %>%
+  select(-Attrition) %>%
+  lime(
+    model           = automl_leader,
+    bin_continuous  = TRUE,
+    n_bins          = 4,
+    quantile_bins   = TRUE
+  )
+
+explainer
+```
+
+```{r}
+
+explanation <- test_tbl %>%
+  slice(1) %>%
+  select(-Attrition) %>%
+  lime::explain(
+    
+    # Pass our explainer object
+    explainer = explainer,
+    # Because it is a binary classification model: 1
+    n_labels   = 1,
+    # number of features to be returned
+    n_features = 8,
+    # number of localized linear models
+    n_permutations = 5000,
+    # Let's start with 1
+    kernel_width   = 1
+  )
+
+explanation
+```
+
+```{r}
+explanation %>%
+  as.tibble() %>%
+  select(feature:prediction) 
+
+g <- plot_features(explanation = explanation, ncol = 1)
+
+plot_features(explanation = explanation, ncol = 1)
+```
+
+## 3.3 Multiple Explanations
+
+```{r}
+explanation <- test_tbl %>%
+  slice(1:20) %>%
+  select(-Attrition) %>%
+  lime::explain(
+    explainer = explainer,
+    n_labels   = 1,
+    n_features = 8,
+    n_permutations = 5000,
+    kernel_width   = 0.5
+  )
+```
+
+```{r}
+explanation %>%
+  as.tibble()
+
+plot_features(explanation, ncol = 4)
+
+plot_explanations(explanation)
+```
+
+# Challenge part 1 
+
+```{r}
+explanation %>% 
+  as.tibble()
+```
+
+```{r}
+case_1 <- explanation %>%
+  filter(case == 1)
+```
+
+```{r}
+case_1 %>%
+  plot_features()
+```
+
+```{r}
+case_1 %>%
+  ggplot(aes(feature_weight, feature)) +
+  geom_col(fill = "#1a2c50") +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_fill_manual(values = c("steelblue", "firebrick"), drop = FALSE) +
+  labs(
+    title = ("Model explanation"),
+    x = "Weight",
+    y = "Feature"
+  ) +
+  theme_tq_dark()
+```
+
+# Challenge part 2 
+
+```{r}
+explanation %>% ggplot(aes_(~case, ~feature_desc)) +
+  geom_tile(aes_(fill = ~feature_weight)) + 
+  scale_x_discrete("Case", expand = c(0, 0)) +
+  scale_y_discrete("Feature", expand = c(0, 0)) +
+  scale_fill_gradient2("Feature\nweight", low = "firebrick", mid = "#f7f7f7", high = "steelblue") +
+  theme(panel.border = element_rect(fill = NA,
+                                    colour = "grey60",
+                                    size = 1),
+        panel.grid = element_blank(),
+        legend.position = "right",
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  facet_wrap(~label)
+```
