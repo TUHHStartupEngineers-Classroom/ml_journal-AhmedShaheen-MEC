@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<meta name="date" content="2020-11-05" />
+
+<title>03 Automated Machine Learning with H20 ONE and TWO</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #ffffff;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row-fluid">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">MyLabJournal</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Index</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+    Journal
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="01_ml_fund.html">01 Machine Learning Fundamentals</a>
+    </li>
+    <li>
+      <a href="02_ml_sup.html">02 Supervised ML</a>
+    </li>
+    <li>
+      <a href="03_ml_aut.html">03 Automated Machine Learning with H20</a>
+    </li>
+    <li>
+      <a href="04_perf_meas.html">04 Performance Measures</a>
+    </li>
+    <li>
+      <a href="05_lime.html">05 LIME</a>
+    </li>
+    <li>
+      <a href="06_dl.html">06 Deep Learning</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="07_class_notes.html">Class notes</a>
+</li>
+<li>
+  <a href="08_links.html">Links</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">03 Automated Machine Learning with H20 ONE and TWO</h1>
+<h4 class="date">2020-11-05</h4>
+
+</div>
+
+
+<div id="libraries" class="section level1">
+<h1><span class="header-section-number">1</span> Libraries</h1>
+<p>Load the following libraries.</p>
+<pre class="r"><code>library(h2o)
+library(tidyverse)
+library(readxl)
+library(skimr)
+library(GGally)
+library(rsample)
+library(recipes)
+library(PerformanceAnalytics)  # for skewers
+library(rpart.plot)</code></pre>
+</div>
+<div id="challenge" class="section level1">
+<h1><span class="header-section-number">2</span> Challenge</h1>
+<pre class="r"><code> employee_attrition_tbl &lt;- read_csv(&quot;datasets-1067-1925-WA_Fn-UseC_-HR-Employee-Attrition.csv&quot;)</code></pre>
+<div id="helper-function" class="section level2">
+<h2><span class="header-section-number">2.1</span> Helper function</h2>
+<pre class="r"><code>plot_ggpairs &lt;- function(data, color = NULL, density_alpha = 0.5) {
+#   
+  color_expr &lt;- enquo(color)
+   
+   if (rlang::quo_is_null(color_expr)) {
+     
+     g &lt;- data %&gt;%
+       ggpairs(lower = &quot;blank&quot;) 
+     
+   } else {
+     
+     color_name &lt;- quo_name(color_expr)
+     
+     g &lt;- data %&gt;%
+       ggpairs(mapping = aes_string(color = color_name), 
+               lower = &quot;blank&quot;, legend = 1,
+               diag = list(continuous = wrap(&quot;densityDiag&quot;, 
+                                             alpha = density_alpha))) +
+       theme(legend.position = &quot;bottom&quot;)
+   }
+   
+   return(g)
+   
+}</code></pre>
+</div>
+<div id="number-one" class="section level2">
+<h2><span class="header-section-number">2.2</span> Number One</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;income&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is C </code></pre>
+<p>##Number Two</p>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;PercentSalaryHike&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is D</code></pre>
+</div>
+<div id="number-three" class="section level2">
+<h2><span class="header-section-number">2.3</span> Number Three</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;StockOptionLevel&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-four" class="section level2">
+<h2><span class="header-section-number">2.4</span> Number Four</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;EnvironmentSatisfaction&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is A</code></pre>
+</div>
+<div id="number-five" class="section level2">
+<h2><span class="header-section-number">2.5</span> Number Five</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;WorkLifeBalance&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-six" class="section level2">
+<h2><span class="header-section-number">2.6</span> Number Six</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;JobInvolvement&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is A</code></pre>
+</div>
+<div id="number-seven" class="section level2">
+<h2><span class="header-section-number">2.7</span> Number Seven</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;OverTime&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-eight" class="section level2">
+<h2><span class="header-section-number">2.8</span> Number Eight</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;TrainingTimesLastYear&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-nine" class="section level2">
+<h2><span class="header-section-number">2.9</span> Number Nine</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;YearsAtCompany&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is B</code></pre>
+</div>
+<div id="number-ten" class="section level2">
+<h2><span class="header-section-number">2.10</span> Number Ten</h2>
+<pre class="r"><code>employee_attrition_tbl %&gt;%
+  select(Attrition, contains(&quot;YearsSinceLastPromotion&quot;)) %&gt;%
+  plot_ggpairs(Attrition)</code></pre>
+<p><img src="03_ml_aut_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<pre class="r"><code>#The answer is C</code></pre>
+</div>
+</div>
+<div id="second-challenge" class="section level1">
+<h1><span class="header-section-number">3</span> Second challenge</h1>
+<pre class="r"><code>product_backorders_tbl &lt;- read_csv(&quot;product_backorders.csv&quot;)</code></pre>
+<div id="split-into-test-and-train" class="section level2">
+<h2><span class="header-section-number">3.1</span> Split into test and train</h2>
+<pre class="r"><code>set.seed(seed = 1113)
+split_obj &lt;- rsample::initial_split(product_backorders_tbl, prop = 0.85)</code></pre>
+</div>
+<div id="assign-training-and-test-data" class="section level2">
+<h2><span class="header-section-number">3.2</span> Assign training and test data</h2>
+<pre class="r"><code>train_readable_tbl&lt;- training(split_obj)
+test_readable_tbl &lt;- testing(split_obj)</code></pre>
+<pre class="r"><code>  recipe_obj &lt;- recipe( went_on_backorder~., data = train_readable_tbl) %&gt;% 
+  step_zv(all_predictors()) %&gt;%
+  prep()
+  
+train_tbl &lt;- bake(recipe_obj, new_data = train_readable_tbl)
+test_tbl  &lt;- bake(recipe_obj, new_data = test_readable_tbl)</code></pre>
+</div>
+<div id="set-the-predictor-names" class="section level2">
+<h2><span class="header-section-number">3.3</span> set the predictor names</h2>
+<pre class="r"><code> predictors &lt;- c(&quot;national_inv&quot;, &quot;lead_time&quot;, &quot;forecast_3_month&quot;, &quot;sales_3_month&quot;)
+  
+##specify the response
+
+ response &lt;- &quot;went_on_backorder&quot;
+ h2o.init()</code></pre>
+<pre><code>##  Connection successful!
+## 
+## R is connected to the H2O cluster: 
+##     H2O cluster uptime:         13 minutes 39 seconds 
+##     H2O cluster timezone:       Europe/Berlin 
+##     H2O data parsing timezone:  UTC 
+##     H2O cluster version:        3.32.0.1 
+##     H2O cluster version age:    2 months and 30 days  
+##     H2O cluster name:           H2O_started_from_R_ahmed_cgv301 
+##     H2O cluster total nodes:    1 
+##     H2O cluster total memory:   1.91 GB 
+##     H2O cluster total cores:    4 
+##     H2O cluster allowed cores:  4 
+##     H2O cluster healthy:        TRUE 
+##     H2O Connection ip:          localhost 
+##     H2O Connection port:        54321 
+##     H2O Connection proxy:       NA 
+##     H2O Internal Security:      FALSE 
+##     H2O API Extensions:         Amazon S3, Algos, AutoML, Core V3, TargetEncoder, Core V4 
+##     R Version:                  R version 4.0.3 (2020-10-10)</code></pre>
+</div>
+<div id="split-data-into-a-training-and-a-validation-data-frame" class="section level2">
+<h2><span class="header-section-number">3.4</span> Split data into a training and a validation data frame</h2>
+<pre class="r"><code> # Setting the seed is just for reproducability
+ split_h2o &lt;- h2o.splitFrame(as.h2o(train_tbl), ratios = c(0.85), seed = 1234)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+<pre class="r"><code> train_h2o &lt;- split_h2o[[1]]
+ valid_h2o &lt;- split_h2o[[2]]
+ test_h2o  &lt;- as.h2o(test_tbl)</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="set-the-target-and-predictors" class="section level2">
+<h2><span class="header-section-number">3.5</span> Set the target and predictors</h2>
+<pre class="r"><code> y &lt;- response
+ x &lt;- setdiff(names(train_h2o), y)
+ 
+ 
+ automl_models_h2o &lt;- h2o.automl(
+   x = x,
+   y = y,
+   training_frame    = train_h2o,
+   validation_frame  = valid_h2o,
+   leaderboard_frame = test_h2o,
+   max_runtime_secs  = 15,
+   nfolds            = 5 
+ )</code></pre>
+<pre><code>## 
+  |                                                                            
+  |                                                                      |   0%
+  |                                                                            
+  |==                                                                    |   3%
+## 22:48:19.861: User specified a validation frame with cross-validation still enabled. Please note that the models will still be validated using cross-validation only, the validation frame will be used to provide purely informative validation metrics on the trained models.
+## 22:48:19.863: AutoML: XGBoost is not available; skipping it.
+  |                                                                            
+  |====================                                                  |  28%
+  |                                                                            
+  |==================================                                    |  48%
+  |                                                                            
+  |================================================                      |  69%
+  |                                                                            
+  |========================================================              |  80%
+  |                                                                            
+  |======================================================================| 100%</code></pre>
+</div>
+<div id="prepare-model" class="section level2">
+<h2><span class="header-section-number">3.6</span> Prepare model</h2>
+<pre class="r"><code> automl_models_h2o@leaderboard</code></pre>
+<pre><code>##                                              model_id       auc   logloss
+## 1    StackedEnsemble_AllModels_AutoML_20210107_224819 0.9394558 0.2131051
+## 2 StackedEnsemble_BestOfFamily_AutoML_20210107_224819 0.9311959 0.2218356
+## 3                        GBM_4_AutoML_20210107_224819 0.9190436 0.3116600
+## 4                        GBM_5_AutoML_20210107_224819 0.8828485 0.3373774
+## 5          GBM_grid__1_AutoML_20210107_224819_model_1 0.8777214 0.2930852
+## 6                        XRT_1_AutoML_20210107_224819 0.7794637 1.9771909
+##       aucpr mean_per_class_error      rmse        mse
+## 1 0.6552421            0.1641491 0.2514850 0.06324468
+## 2 0.6463268            0.1581397 0.2542267 0.06463123
+## 3 0.6236841            0.1768081 0.3010432 0.09062698
+## 4 0.4439764            0.2162209 0.3129217 0.09791999
+## 5 0.5136269            0.2503596 0.2915083 0.08497709
+## 6 0.3757676            0.3096239 0.3155025 0.09954183
+## 
+## [12 rows x 7 columns]</code></pre>
+<pre class="r"><code> Model&lt;-automl_models_h2o@leader
+ h2o.saveModel(Model,path = &quot;ml_journal-Automated_Machine_learning_2_model&quot;)</code></pre>
+<pre><code>## [1] &quot;D:\\Mechatronics_master\\Third semester\\Data science\\Machine learning\\ml_journal-AhmedShaheen-MEC\\ml_journal-Automated_Machine_learning_2_model\\StackedEnsemble_AllModels_AutoML_20210107_224819&quot;</code></pre>
+</div>
+</div>
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
